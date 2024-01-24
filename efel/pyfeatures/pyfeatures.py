@@ -57,6 +57,8 @@ all_pyfeatures = [
     'strict_burst_number',
     'trace_check',
     'phaseslope_max',
+    'time_constant_AP1',
+    'subthreshold_time_constant'
 ]
 
 
@@ -459,3 +461,69 @@ def get_cpp_feature(feature_name: str, raise_warnings=False) -> np.ndarray | Non
 def _get_cpp_data(data_name: str) -> float:
     """Get cpp data value."""
     return cppcore.getMapDoubleData(data_name)[0]
+
+def time_constant_AP1():
+    """To calculate time constant for rise to threshold of first AP. 
+    The bounds can be between stim_start and AP_rise_time[0]"""
+
+    voltage = get_cpp_feature("voltage")
+    time = get_cpp_feature("time")
+    AP_rise_time = get_cpp_feature("AP_rise_time")
+    stim_start = _get_cpp_data("stim_start")
+
+    if voltage is None or time is None or AP_rise_time is None:
+        return None
+    else:
+        # time_constant_AP1 = np.array([AP_rise_time[0] - stim_start])
+        # return time_constant_AP1
+        # fit an exponential function to the voltage trace between stim_start and AP_rise_time[0]
+        # and return the time constant
+        from scipy.optimize import curve_fit
+        import math
+        from numpy import exp
+        def func(x, a, b, c):
+            return a *(1-exp(-b * x)) + c
+        # get the index of the first element of time that is greater than stim_start
+        stim_start_idx = np.flatnonzero(time >= stim_start)[0]
+        # get the index of the first element of time that is greater than AP_rise_time[0]
+        AP_rise_time_idx = np.flatnonzero(time >= AP_rise_time[0])[0]
+        # get the voltage trace between stim_start and AP_rise_time[0]
+        voltage_trace = voltage[stim_start_idx:AP_rise_time_idx]
+        # get the time trace between stim_start and AP_rise_time[0]
+        time_trace = time[stim_start_idx:AP_rise_time_idx]
+        # fit the exponential function to the voltage trace
+        popt, pcov = curve_fit(func, time_trace, voltage_trace)
+        # get the time constant
+        time_constant_AP1 = -1/popt[1]
+        return np.array([time_constant_AP1])
+    
+def subthreshold_time_constant():
+    """To calculate the rising time constant of subthreshold (depolarising)
+    step stimulus voltage response"""
+    voltage = get_cpp_feature("voltage")
+    time = get_cpp_feature("time")
+    AP_rise_time = get_cpp_feature("AP_rise_time")
+    stim_start = _get_cpp_data("stim_start")
+    stim_end = _get_cpp_data("stim_end")
+
+    if voltage is None or time is None or AP_rise_time is None:
+        return None
+    else:
+        from scipy.optimize import curve_fit
+        import math
+        from numpy import exp
+        def func(x, a, b, c):
+            return a *(1-exp(-b * x)) + c
+        # get the index of the first element of time that is greater than stim_start
+        stim_start_idx = np.flatnonzero(time >= stim_start)[0]
+        #get the index of the first element of time that is greater than stim_end
+        stim_end_idx = np.flatnonzero(time >= stim_end)[0]
+        # get the voltage trace between stim_start and AP_rise_time[0]
+        voltage_trace = voltage[stim_start_idx:stim_end_idx]
+        # get the time trace between stim_start and AP_rise_time[0]
+        time_trace = time[stim_start_idx:stim_end_idx]
+        # fit the exponential function to the voltage trace
+        popt, pcov = curve_fit(func, time_trace, voltage_trace)
+        # get the time constant
+        time_constant_AP1 = -1/popt[1]
+        return np.array([time_constant_AP1])
