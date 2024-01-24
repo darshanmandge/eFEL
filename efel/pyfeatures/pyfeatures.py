@@ -463,7 +463,7 @@ def _get_cpp_data(data_name: str) -> float:
     return cppcore.getMapDoubleData(data_name)[0]
 
 def time_constant_AP1():
-    """To calculate time constant for rise to threshold of first AP. 
+    """To calculate time constant for rise to threshold of first AP.
     The bounds can be between stim_start and AP_rise_time[0]"""
 
     voltage = get_cpp_feature("voltage")
@@ -474,8 +474,6 @@ def time_constant_AP1():
     if voltage is None or time is None or AP_rise_time is None:
         return None
     else:
-        # time_constant_AP1 = np.array([AP_rise_time[0] - stim_start])
-        # return time_constant_AP1
         # fit an exponential function to the voltage trace between stim_start and AP_rise_time[0]
         # and return the time constant
         from scipy.optimize import curve_fit
@@ -496,7 +494,7 @@ def time_constant_AP1():
         # get the time constant
         time_constant_AP1 = -1/popt[1]
         return np.array([time_constant_AP1])
-    
+
 def subthreshold_time_constant():
     """To calculate the rising time constant of subthreshold (depolarising)
     step stimulus voltage response"""
